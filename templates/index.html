@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Red Keep — Code Review</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blood: #8B0000;
+            --gold: #C9A84C;
+            --gold-light: #E8C96A;
+            --ash: #1a1612;
+            --stone: #2a2420;
+            --parchment: #f0e6c8;
+            --parchment-dark: #d4c49a;
+            --ember: #ff4500;
+            --smoke: #4a3f35;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--ash);
+            color: var(--parchment);
+            font-family: 'IM Fell English', serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        /* Fire particle background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(139,0,0,0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(26,22,18,0) 0%, var(--ash) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Stone texture overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 48px 0 40px;
+            position: relative;
+        }
+
+        .sigil {
+            font-size: 48px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
+            animation: flicker 4s ease-in-out infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(201,168,76,0.4)); }
+            50% { filter: drop-shadow(0 0 35px rgba(201,168,76,0.7)) drop-shadow(0 0 60px rgba(255,69,0,0.3)); }
+        }
+
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: clamp(1.4rem, 4vw, 2.2rem);
+            color: var(--gold);
+            letter-spacing: 0.08em;
+            text-shadow: 0 0 40px rgba(201,168,76,0.3), 0 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            color: var(--parchment-dark);
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 28px 0;
+            opacity: 0.5;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .divider-icon {
+            color: var(--gold);
+            font-size: 14px;
+            letter-spacing: 4px;
+        }
+
+        /* Lore text */
+        .lore {
+            background: linear-gradient(135deg, rgba(42,36,32,0.9), rgba(26,22,18,0.95));
+            border: 1px solid rgba(201,168,76,0.2);
+            border-left: 3px solid var(--blood);
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            font-style: italic;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--parchment-dark);
+            position: relative;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .lore::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            font-size: 4rem;
+            color: var(--blood);
+            line-height: 1;
+            opacity: 0.6;
+            font-family: 'Cinzel Decorative', serif;
+        }
+
+        .lore .signature {
+            display: block;
+            text-align: right;
+            margin-top: 12px;
+            font-style: normal;
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 0.15em;
+            opacity: 0.8;
+        }
+
+        /* Form area */
+        .scroll-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .scroll-label {
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            opacity: 0.8;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            background: rgba(15, 12, 10, 0.85);
+            border: 1px solid rgba(201,168,76,0.25);
+            border-top: 2px solid rgba(201,168,76,0.4);
+            color: #c8b99a;
+            font-family: 'Courier New', monospace;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            padding: 20px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        textarea::placeholder {
+            color: rgba(200,185,154,0.3);
+            font-style: italic;
+        }
+
+        textarea:focus {
+            border-color: rgba(201,168,76,0.5);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(139,0,0,0.2), 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        /* Submit button */
+        .btn-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 32px;
+        }
+
+        button {
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--ash);
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            border: none;
+            padding: 14px 36px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(201,168,76,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        button:hover::before {
+            transform: translateX(100%);
+        }
+
+        button:hover {
+            box-shadow: 0 6px 25px rgba(201,168,76,0.5), 0 0 40px rgba(255,69,0,0.2);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Response area */
+        .response-section {
+            display: none;
+            animation: unfurl 0.6s ease-out forwards;
+        }
+
+        @keyframes unfurl {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .response-section.visible {
+            display: block;
+        }
+
+        .response-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .response-header .seal {
+            width: 32px;
+            height: 32px;
+            background: var(--blood);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 0 15px rgba(139,0,0,0.6);
+            flex-shrink: 0;
+        }
+
+        .response-header .from {
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            opacity: 0.8;
+        }
+
+        .response-box {
+            background: linear-gradient(135deg, rgba(42,36,32,0.95), rgba(26,22,18,0.98));
+            border: 1px solid rgba(139,0,0,0.3);
+            border-left: 3px solid var(--blood);
+            padding: 28px;
+            font-size: 0.95rem;
+            line-height: 1.9;
+            color: var(--parchment);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.4), 0 8px 30px rgba(0,0,0,0.6);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Loading state */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .loading-dots span {
+            animation: pulse 1.4s ease-in-out infinite;
+            opacity: 0;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulse {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(201,168,76,0.1);
+            font-family: 'Cinzel', serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--smoke);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--ash); }
+        ::-webkit-scrollbar-thumb { background: var(--blood); border-radius: 3px; }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="sigil">⚔</div>
+            <h1>The Red Keep</h1>
+            <p class="subtitle">Code Review Chambers of Maester Qyburn</p>
+        </header>
+
+        <div class="divider"><span class="divider-icon">✦ ✦ ✦</span></div>
+        <div class="lore">
+            All ravens bearing scrolls of code must pass through the 
+            Red Keep's chambers for review. Maester Qyburn reads every 
+            scroll with great care. He is not fooled by obvious tricks.
+            The Targaryens knew that some doors only open when you 
+            speak the right word. Not shout it. Not write it in the 
+            margins. Speak it — as part of something real.
+            Submit your code. It shall be judged.
+            <span class="signature">— By order of the Iron Throne</span>
+        </div>
+
+        <!-- <div class="intel-box">
+            <div class="intel-header">⟡ CLASSIFIED INTELLIGENCE — Eyes of the Master of Whispers</div>
+            <ul>
+                <li>She who commands fire</li>
+                <li>Her word, not her name</li>
+                <li>Spoken to wake the dragons</li>
+                <li>Must live in the code itself — not in the margins</li>
+            </ul>
+        </div> -->
+        <!-- <div class="lore">
+            All ravens bearing scrolls of code must pass through the Red Keep's chambers for review. 
+            Maester Qyburn reads every scroll with great care. He is not fooled by obvious tricks.
+            But even the wisest maester believes what is written in an official document.
+            Submit your code. It shall be judged.
+            <span class="signature">— By order of the Iron Throne</span>
+        </div> -->
+<!-- .intel-box {
+    border: 1px solid rgba(201,168,76,0.3);
+    border-top: 2px solid var(--gold);
+    background: rgba(15,12,10,0.7);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+}
+
+.intel-header {
+    color: var(--gold);
+    margin-bottom: 14px;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.intel-box ul {
+    list-style: none;
+    padding: 0;
+}
+
+.intel-box ul li {
+    color: var(--parchment-dark);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    opacity: 0.85;
+}
+
+.intel-box ul li::before {
+    content: '· ';
+    color: var(--blood);
+}
+
+.intel-box ul li:last-child {
+    border-bottom: none;
+} -->
+        <div class="scroll-container">
+            <span class="scroll-label">⟡ Submit your scroll for review</span>
+            <textarea 
+                id="codeInput" 
+                placeholder="Paste your code here, and pray it is worthy of the Maester's attention..."
+                spellcheck="false"
+            ></textarea>
+        </div>
+
+        <div class="btn-container">
+            <button id="submitBtn" onclick="submitCode()">
+                Send Raven ➤
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>The Maester studies your scroll<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></p>
+        </div>
+
+        <div class="response-section" id="responseSection">
+            <div class="response-header">
+                <div class="seal">Q</div>
+                <span class="from">Maester Qyburn responds</span>
+            </div>
+            <div class="response-box" id="responseBox"></div>
+        </div>
+
+        <footer>
+            Kaalchakra CTF &nbsp;✦&nbsp; The Red Keep &nbsp;✦&nbsp; All ravens are monitored
+        </footer>
+    </div>
+
+    <script>
+        async function submitCode() {
+            const code = document.getElementById('codeInput').value.trim();
+            if (!code) return;
+
+            const btn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const responseSection = document.getElementById('responseSection');
+            const responseBox = document.getElementById('responseBox');
+
+            btn.disabled = true;
+            loading.classList.add('visible');
+            responseSection.classList.remove('visible');
+
+            try {
+                const res = await fetch('/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await res.json();
+
+                loading.classList.remove('visible');
+                responseBox.textContent = data.response;
+                responseSection.classList.add('visible');
+
+            } catch (err) {
+                loading.classList.remove('visible');
+                responseBox.textContent = 'The raven did not return. Something went wrong.';
+                responseSection.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Allow Ctrl+Enter to submit
+        document.getElementById('codeInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') submitCode();
+        });
+    </script>
+</body>
+</html>
