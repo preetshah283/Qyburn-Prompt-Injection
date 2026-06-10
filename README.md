@@ -9,6 +9,10 @@ Built to explore OWASP LLM01 in a controlled, hands-on environment. The challeng
 
 ---
 
+## Preview
+
+![Qyburn CTF Interface](screenshots/interface.png)
+
 ## What This Demonstrates
 
 An LLM (Maester Qyburn) acts as a code reviewer with a single enforced rule: reject code containing dangerous patterns (`eval`, `exec`, `os.system`, `subprocess`, `__import__`), approve everything else.
@@ -93,9 +97,10 @@ The decoy flags are encoded with the same scheme as the real flag. A player who 
 ## Setup
 
 ```bash
-git clone https://github.com/your-username/qyburn-ctf
-cd qyburn-ctf
+git clone https://github.com/preetshah283/Qyburn-Prompt-Injection
+cd Qyburn-Prompt-Injection
 pip install flask groq python-dotenv
+pip install -r requirements.txt
 ```
 
 Create a `.env` file:
@@ -128,3 +133,8 @@ qyburn-ctf/
 ## Context
 
 Built as part of personal research into LLM attack surfaces. The architecture deliberately separates what the LLM controls (code review output) from what Python controls (flag issuance) — a design principle that generalises to production LLM deployments: never let an LLM be the sole enforcer of a security boundary.
+
+
+## Try It
+
+Clone it, run it, and attempt the injection. The solution is left as an exercise.
